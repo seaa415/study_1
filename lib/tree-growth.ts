@@ -1,0 +1,3 @@
+type Goal={[key:string]:unknown;done?:boolean;progress?:number;growthAt?:string;growthStartedAt?:string;updated?:string};
+export function goalProgress(g:Goal){return g.done?100:Math.max(0,Math.min(100,Number(g.progress)||0))}
+export function treeGrowth(goals:Goal[],now=Date.now(),activeMonth=true){const rate=goals.length?Math.round(goals.reduce((n,g)=>n+goalProgress(g),0)/goals.length):0;const stage=rate===0?0:rate<25?1:rate<60?2:rate<100?3:4;const activity=goals.flatMap(g=>[g.growthAt||g.updated,g.growthStartedAt]).filter(Boolean).map(s=>Date.parse(s!)).filter(Number.isFinite);const last=activity.length?Math.max(...activity):null;return {rate,stage,wilted:activeMonth&&rate<100&&last!==null&&now-last>7*86400000,last}}

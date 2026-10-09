@@ -120,3 +120,6 @@ create policy study_files_insert on storage.objects for insert to authenticated 
 );
 drop policy if exists study_files_read on storage.objects;
 create policy study_files_read on storage.objects for select to anon,authenticated using (bucket_id='study-files' and private.can_read_storage(name));
+create or replace function public.record_room_visit() returns void language sql security invoker set search_path='' as $$ update public.records set data=jsonb_set(data,'{lastVisitedAt}',to_jsonb(now()::text),true) where kind='member' and owner=auth.uid() and (data->>'lastVisitedAt' is null or (data->>'lastVisitedAt')::timestamptz < now()-interval '1 hour'); $$;
+revoke all on function public.record_room_visit() from public,anon;
+grant execute on function public.record_room_visit() to authenticated;

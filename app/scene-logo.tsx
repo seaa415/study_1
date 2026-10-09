@@ -1,0 +1,1 @@
+export default function SceneLogo(){return <img className="scene-mascot" src="/images/scene-room-logo.svg" width="68" height="68" alt="슬레이트 모자를 쓰고 펜을 든 씬룸 캐릭터"/>}
