@@ -35,8 +35,12 @@ test('database and file policies isolate writers while allowing team edits',asyn
  await db.query('insert into public.uploads(id,owner,path,filename) values($1,$2,$3,$4)',[file,a,a+'/'+file,'script.txt']);
  await db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['study-files',a+'/'+file]);
  await insert('file-a','resource',a,'private',null,{url:'/api/files?key='+file});
+ await insert('personal-schedule-a','event',a,'shared',null,{calendarScope:'personal',date:'2026-10-20'});await insert('monthly-goal-a','goal',a,'shared',null,{goalPeriod:'monthly',goalMonth:'2026-10',done:false});
  await insert('team-goal','teamGoal',a);await insert('study-rules','rules',a);
- await as(b);await insert('profile_'+b,'member',b);await insert('comment-b','comment',b,'shared','shared-a');
+ await as(b);await insert('profile_'+b,'member',b);
+ assert.equal((await db.query("select id from public.records where id in ('personal-schedule-a','monthly-goal-a')")).rows.length,2);
+ assert.equal((await db.query("update public.records set data=jsonb_set(data,'{title}','\"forged\"') where id in ('personal-schedule-a','monthly-goal-a','profile_"+a+"') returning id")).rows.length,0);
+await insert('comment-b','comment',b,'shared','shared-a');
  assert.equal((await db.query("select id from public.records where id='private-a'")).rows.length,0);
  assert.equal((await db.query('select * from storage.objects')).rows.length,0);
  await assert.rejects(()=>insert('forged-file','resource',b,'shared',null,{url:'/api/files?key='+file}));

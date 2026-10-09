@@ -12,6 +12,8 @@ export async function POST(req:Request){if(crossSiteWrite(req))return Response.j
  const r:any=await req.json();
  if(!r||!kinds.includes(r.kind)||typeof r.title!=='string'||!r.title.trim()||r.title.length>150||JSON.stringify(r).length>30000)return Response.json({error:'제목과 내용을 확인해 주세요.'},{status:400});
  if(['project','teamGoal'].includes(r.kind)&&(!Number.isFinite(Number(r.progress))||Number(r.progress)<0||Number(r.progress)>100))return Response.json({error:'완성률은 0~100 사이로 입력해 주세요.'},{status:400});
+ if(r.notionUrl){const n=new URL(r.notionUrl);if(n.protocol!=='https:'||!/(^|\.)(notion\.so|notion\.site)$/.test(n.hostname))return Response.json({error:'올바른 노션 링크를 입력해 주세요.'},{status:400});}
+ if(r.kind==='member'&&(typeof r.roomTitle!=='undefined'&&(typeof r.roomTitle!=='string'||r.roomTitle.length>60)))return Response.json({error:'창작룸 이름은 60자 이하로 입력해 주세요.'},{status:400});
  const profile=await profileFor(user.userId);
  if(r.kind!=='member'&&!profile)return Response.json({error:'먼저 내 프로필을 만들어 주세요.'},{status:409});
  if(r.kind==='member'&&r.title.trim().length>24)return Response.json({error:'닉네임은 24자 이하로 입력해 주세요.'},{status:400});
