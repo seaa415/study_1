@@ -13,7 +13,7 @@ test('database and file policies isolate writers while allowing team edits',asyn
  const a='11111111-1111-4111-8111-111111111111',b='22222222-2222-4222-8222-222222222222',file='33333333-3333-4333-8333-333333333333';
  try{
  await db.exec(`create role anon; create role authenticated; create schema auth; create schema storage;
- create table auth.users(id uuid primary key);
+ create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
  create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
  create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint);
  create table storage.objects(id serial primary key,bucket_id text,name text);
@@ -22,11 +22,16 @@ test('database and file policies isolate writers while allowing team edits',asyn
  grant usage on schema public,auth,storage to anon,authenticated;
  grant select,insert on storage.objects to anon,authenticated;
  grant usage on sequence storage.objects_id_seq to authenticated;
- insert into auth.users values ('${a}'),('${b}');`);
+ insert into auth.users(id,email,email_confirmed_at) values ('${a}','admin@example.test',now()),('${b}','member@example.test',now());`);
  await db.exec(await readFile(new URL('../supabase/setup.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL('../supabase/admin-settings.sql',import.meta.url),'utf8'));
+ await db.exec("insert into private.site_admins(email) values ('admin@example.test')");
  async function as(user:string|null){await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user||'']);await db.exec(user?'set role authenticated':'set role anon')}
  async function insert(id:string,kind:string,owner:string,visibility='shared',parent:string|null=null,extra:Record<string,unknown>={}){return db.query('insert into public.records(id,kind,owner,visibility,parent,data) values($1,$2,$3,$4,$5,$6::jsonb)',[id,kind,owner,visibility,parent,JSON.stringify({title:'검증용',progress:0,...extra})])}
- await as(a);await insert('profile_'+a,'member',a);await insert('private-a','project',a,'private');await insert('shared-a','project',a);
+ await as(b);assert.equal((await db.query("update public.site_settings set settings=jsonb_set(settings,'{theme}','\"forest\"') where id='site' returning id")).rows.length,0);
+ await assert.rejects(()=>db.query("insert into private.site_admins(email) values ('member@example.test')"));
+ await as(a);assert.equal((await db.query("update public.site_settings set settings=jsonb_set(settings,'{theme}','\"forest\"') where id='site' returning id")).rows.length,1);
+ await insert('profile_'+a,'member',a);await insert('private-a','project',a,'private');await insert('shared-a','project',a);
  await db.query('insert into public.uploads(id,owner,path,filename) values($1,$2,$3,$4)',[file,a,a+'/'+file,'script.txt']);
  await db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['study-files',a+'/'+file]);
  await insert('file-a','resource',a,'private',null,{url:'/api/files?key='+file});
