@@ -39,8 +39,13 @@ test('database and file policies isolate writers while allowing team edits',asyn
  await db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['study-files',a+'/'+file]);
  await insert('file-a','resource',a,'private',null,{url:'/api/files?key='+file});
  await insert('personal-schedule-a','event',a,'shared',null,{calendarScope:'personal',date:'2026-10-20'});await insert('monthly-goal-a','goal',a,'shared',null,{goalPeriod:'monthly',goalMonth:'2026-10',done:false});
+ await insert('main-admin-schedule','event',a,'shared',null,{calendarScope:'study',date:'2026-10-21',fillDay:true,eventColor:'#ffff00'});
  await insert('team-goal','teamGoal',a);await insert('study-rules','rules',a);
  await as(b);await insert('profile_'+b,'member',b);
+ await assert.rejects(()=>insert('main-member-forbidden','event',b,'shared',null,{calendarScope:'study'}));
+ await insert('personal-schedule-b','event',b,'shared',null,{calendarScope:'personal',calendarPublication:'all'});
+ await assert.rejects(()=>db.query("update public.records set data=jsonb_set(data,'{calendarScope}','\"study\"') where id='personal-schedule-b'"));
+ assert.equal((await db.query("update public.records set data=jsonb_set(data,'{fillDay}','true') where id='main-admin-schedule' returning id")).rows.length,0);
  assert.equal((await db.query("select id from public.records where id in ('personal-schedule-a','monthly-goal-a')")).rows.length,2);
  assert.equal((await db.query("update public.records set data=jsonb_set(data,'{title}','\"forged\"') where id in ('personal-schedule-a','monthly-goal-a','profile_"+a+"') returning id")).rows.length,0);
 await insert('comment-b','comment',b,'shared','shared-a');

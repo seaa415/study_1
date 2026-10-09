@@ -1,0 +1,1 @@
+Built-in imagegen. Reference: user hand-drawn Scene Room logo, right concept B. Character-only transparent logo: round white creature, black wobbly ink outlines, clapperboard hat, two dot eyes, O mouth, raised pen. Remove lettering so website renders a consistent bold Gothic wordmark. No background, shadows or gradients. Preserve transparent alpha.

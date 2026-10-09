@@ -33,3 +33,21 @@ create policy settings_update on public.site_settings for update to authenticate
  using((select private.is_site_admin())) with check((select private.is_site_admin()));
 insert into public.site_settings(id,settings) values ('site','{"siteName":"씬룸","studyName":"작가교육원 스터디","tagline":"함께 완성하는 집필실","dashboardTitle":"함께 쓰는, 다음 장면","theme":"lavender"}') on conflict(id) do nothing;
 create index if not exists uploads_owner_idx on public.uploads(owner);
+
+create or replace function private.guard_main_calendar() returns trigger language plpgsql security invoker set search_path='' as $$
+begin
+ if tg_op='DELETE' then
+  if old.kind='event' and coalesce(old.data->>'calendarScope','study')<>'personal' and not private.is_site_admin() then raise exception 'Main calendar is managed by administrators'; end if;
+  return old;
+ end if;
+ if new.kind='event' then
+  if coalesce(new.data->>'calendarScope','study')<>'personal' and not private.is_site_admin() then raise exception 'Main calendar is managed by administrators'; end if;
+  if tg_op='UPDATE' then
+   if coalesce(old.data->>'calendarScope','study')<>'personal' and not private.is_site_admin() then raise exception 'Main calendar is managed by administrators'; end if;
+  end if;
+ end if;
+ return new;
+end; $$;
+revoke all on function private.guard_main_calendar() from public;
+drop trigger if exists guard_main_calendar on public.records;
+create trigger guard_main_calendar before insert or update or delete on public.records for each row execute function private.guard_main_calendar();
