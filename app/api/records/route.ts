@@ -15,6 +15,7 @@ export async function POST(req:Request){if(crossSiteWrite(req))return Response.j
  if(r.notionUrl){const n=new URL(r.notionUrl);if(n.protocol!=='https:'||!/(^|\.)(notion\.so|notion\.site|notion\.com)$/.test(n.hostname))return Response.json({error:'올바른 노션 링크를 입력해 주세요.'},{status:400});}
  if(r.kind==='member'&&(typeof r.roomTitle!=='undefined'&&(typeof r.roomTitle!=='string'||r.roomTitle.length>60)))return Response.json({error:'창작룸 이름은 60자 이하로 입력해 주세요.'},{status:400});
  if(r.kind==='event'&&r.eventColor&&(!/^#[a-f0-9]{6}$/i.test(r.eventColor)))return Response.json({error:'올바른 일정 색상을 선택해 주세요.'},{status:400});
+ if(r.kind==='event')for(const key of ['eventTextColor','eventBackgroundColor','dayFillColor'])if(r[key]&&!/^#[a-f0-9]{6}$/i.test(r[key]))return Response.json({error:'올바른 캘린더 색상을 선택해 주세요.'},{status:400});
  const profile=await profileFor(user.userId);
  if(r.kind!=='member'&&!profile)return Response.json({error:'먼저 내 프로필을 만들어 주세요.'},{status:409});
  if(r.kind==='member'&&r.title.trim().length>24)return Response.json({error:'닉네임은 24자 이하로 입력해 주세요.'},{status:400});
