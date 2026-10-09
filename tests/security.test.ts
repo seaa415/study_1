@@ -55,6 +55,10 @@ await insert('comment-b','comment',b,'shared','shared-a');
  await as(null);assert.equal((await db.query('select * from storage.objects')).rows.length,1);await assert.rejects(()=>insert('anon','goal',a));
  await as(a);await db.query("update public.records set visibility='private' where id='file-a'");
  await as(null);assert.equal((await db.query('select * from storage.objects')).rows.length,0);
+ await as(a);await db.query("update public.records set data=jsonb_set(data,'{url}',to_jsonb($1::text)) where id=$2",['/api/files?key='+file,'profile_'+a]);
+ await as(null);assert.equal((await db.query('select * from storage.objects')).rows.length,1);
+ await as(a);await db.query("update public.records set data=data-'url' where id=$1",['profile_'+a]);
+ await as(null);assert.equal((await db.query('select * from storage.objects')).rows.length,0);
  await as(a);await db.query("delete from public.records where id='shared-a'");
  await db.exec('reset role');assert.equal((await db.query("select * from public.records where id='comment-b'")).rows.length,0);
  }finally{await db.close()}
