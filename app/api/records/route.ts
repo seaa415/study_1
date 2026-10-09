@@ -27,10 +27,13 @@ export async function POST(req:Request){if(crossSiteWrite(req))return Response.j
  if(['member','event','teamGoal','rules'].includes(r.kind)){visibility='shared';parent=null;}
  if(['comment','version'].includes(r.kind)&&!parent)return Response.json({error:'연결된 작품 또는 자료가 필요합니다.'},{status:400});
  if(parent){const permitted=await visibleRecords(user.userId);const p=permitted.find(x=>x.id===parent);if(!p)return Response.json({error:'접근할 수 없는 작품 또는 자료입니다.'},{status:403});if(r.kind==='version'&&!canEdit(p,user.userId))return Response.json({error:'본인 작품에만 버전을 추가할 수 있습니다.'},{status:403});if(existing&&existing.parent!==parent)return Response.json({error:'연결된 항목은 변경할 수 없습니다.'},{status:400});visibility=p.visibility;}
- if(r.url){
- const match=/^\/api\/files\?key=([a-f0-9-]{36})$/.exec(r.url);
+ for(const attachment of [r.url,r.coverUrl].filter(Boolean)){
+ const attachmentUrl=attachment; if(typeof attachmentUrl!=='string')return Response.json({error:'사진 / 파일 주소를 확인해 주세요.'},{status:400});
+ if(attachmentUrl){
+ const match=/^\/api\/files\?key=([a-f0-9-]{36})$/.exec(attachmentUrl);
  if(match){const client=await createClient();const {data:file,error:fileError}=await client.from('uploads').select('owner').eq('id',match[1]).maybeSingle();if(fileError)throw fileError;if(!file||file.owner!==user.userId)return Response.json({error:'본인이 업로드한 파일만 첨부할 수 있습니다.'},{status:403});}
- else {const url=new URL(r.url);if(!['https:','http:'].includes(url.protocol))return Response.json({error:'올바른 문서 링크를 입력해 주세요.'},{status:400});}
+ else {const url=new URL(attachmentUrl);if(!['https:','http:'].includes(url.protocol))return Response.json({error:'올바른 문서 링크를 입력해 주세요.'},{status:400});}
+ }
  }
  if(r.kind==='project'){if(r.category==='기타'&&(typeof r.customCategory!=='string'||!r.customCategory.trim()||r.customCategory.length>60))return Response.json({error:'기타 분류 이름을 입력해 주세요.'},{status:400});const previous=existing?unpack(existing):null;r.feedbackRequested=r.feedbackRequested===true&&visibility==='shared';r.feedbackRequestedAt=r.feedbackRequested?(previous?.feedbackRequested?previous.feedbackRequestedAt:new Date().toISOString()):null;}
  if(r.completionMarker){if(!parent)return Response.json({error:'관련 작품이 필요합니다.'},{status:400});const target=await recordById(parent);if(!target||target.kind!=='project')return Response.json({error:'작품을 찾을 수 없습니다.'},{status:400});r.participants=[];r.notes='';}

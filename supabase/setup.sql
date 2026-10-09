@@ -47,7 +47,7 @@ create or replace function private.can_read_file(file_id uuid) returns boolean
  language sql stable security definer set search_path='' as $$
  select exists(select 1 from public.uploads u where u.id=file_id and
   (u.owner=(select auth.uid()) or exists(
-   select 1 from public.records r where r.owner=u.owner and r.data->>'url'='/api/files?key='||u.id::text and private.can_read_record(r.id)
+   select 1 from public.records r where r.owner=u.owner and (r.data->>'url'='/api/files?key='||u.id::text or r.data->>'coverUrl'='/api/files?key='||u.id::text) and private.can_read_record(r.id)
   )));
 $$;
 create or replace function private.can_read_storage(object_path text) returns boolean
@@ -74,13 +74,14 @@ create or replace function private.guard_record_write() returns trigger
    if p.id is null or not private.can_read_record(p.id) then raise exception 'Inaccessible parent'; end if;
    if new.kind='version' and (p.kind<>'project' or p.owner<>auth.uid()) then raise exception 'Versions belong to the script owner'; end if;
   end if;
-  link:=new.data->>'url';
+  for link in select jsonb_array_elements_text(jsonb_build_array(new.data->>'url',new.data->>'coverUrl')) loop
   if link is not null and link<>'' then
    if link like '/api/files?key=%' then
     begin f:=substring(link from 16)::uuid; exception when others then raise exception 'Invalid file link'; end;
     if not exists(select 1 from public.uploads where id=f and owner=auth.uid()) then raise exception 'Only own uploads may be attached'; end if;
    elsif link !~ '^https?://' then raise exception 'Invalid document URL'; end if;
   end if;
+  end loop;
   new.updated:=now();
   return new;
  end;
