@@ -90,13 +90,13 @@ create trigger guard_record_write before insert or update on public.records for 
 
 -- 같은 SQL을 재실행해도 기존 데이터를 삭제하지 않습니다.
 drop policy if exists records_read on public.records;
-create policy records_read on public.records for select to anon,authenticated using (private.can_read_record(id));
+create policy records_read on public.records for select to anon,authenticated using ((parent is null and (visibility='shared' or owner=(select auth.uid()))) or private.can_read_record(id));
 drop policy if exists records_insert on public.records;
 create policy records_insert on public.records for insert to authenticated with check (owner=(select auth.uid()) and (kind='member' or private.has_profile()));
 drop policy if exists records_update on public.records;
 create policy records_update on public.records for update to authenticated
- using ((owner=(select auth.uid()) or kind in ('teamGoal','rules')) and private.has_profile())
- with check (owner=(select auth.uid()) and private.has_profile());
+ using ((owner=(select auth.uid()) or kind in ('teamGoal','rules')) and (kind='member' or private.has_profile()))
+ with check (owner=(select auth.uid()) and (kind='member' or private.has_profile()));
 drop policy if exists records_delete on public.records;
 create policy records_delete on public.records for delete to authenticated using (owner=(select auth.uid()) and kind not in ('member','teamGoal','rules'));
 drop policy if exists uploads_read on public.uploads;

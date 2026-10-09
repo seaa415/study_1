@@ -31,7 +31,7 @@ test('database and file policies isolate writers while allowing team edits',asyn
  await as(b);assert.equal((await db.query("update public.site_settings set settings=jsonb_set(settings,'{theme}','\"forest\"') where id='site' returning id")).rows.length,0);
  await assert.rejects(()=>db.query("insert into private.site_admins(email) values ('member@example.test')"));
  await as(a);assert.equal((await db.query("update public.site_settings set settings=jsonb_set(settings,'{theme}','\"forest\"') where id='site' returning id")).rows.length,1);
- await insert('profile_'+a,'member',a);await insert('private-a','project',a,'private');await insert('shared-a','project',a);
+ await db.query('insert into public.records(id,kind,owner,data) values($1,$2,$3,$4::jsonb) on conflict(id) do update set data=excluded.data',['profile_'+a,'member',a,JSON.stringify({title:'검증용'})]);await insert('private-a','project',a,'private');await insert('shared-a','project',a);
  await db.query('insert into public.uploads(id,owner,path,filename) values($1,$2,$3,$4)',[file,a,a+'/'+file,'script.txt']);
  await db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['study-files',a+'/'+file]);
  await insert('file-a','resource',a,'private',null,{url:'/api/files?key='+file});
