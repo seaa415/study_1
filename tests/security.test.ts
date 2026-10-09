@@ -2,8 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
+import {fruitFor,fruits} from '../lib/goal-fruits.ts';
 import {safeReturn} from '../lib/redirect.ts';
 import {canRead,canEdit,type StoredRecord} from '../lib/access.ts';
+
+test('goal rewards are stable and cover all eight fruit types',()=>{assert.deepEqual(fruitFor('member:2026-10:goal'),fruitFor('member:2026-10:goal'));const seen=new Set(Array.from({length:200},(_,i)=>fruitFor('member:2026-10:goal'+i).name));assert.equal(seen.size,fruits.length)});
 
 test('redirects stay inside the app',()=>{assert.equal(safeReturn('//evil.example'),'/');assert.equal(safeReturn('/\\evil.example'),'/');assert.equal(safeReturn('https://evil.example'),'/');assert.equal(safeReturn('/room'),'/room');assert.equal(safeReturn('/auth/signout'),'/')});
 test('private ancestor hides its child',()=>{const parent:StoredRecord={id:'p',kind:'project',owner:'a',visibility:'private',parent:null,data:'{}'};const child:StoredRecord={...parent,id:'c',kind:'comment',owner:'b',visibility:'shared',parent:'p'};const all=new Map([['p',parent],['c',child]]);assert.equal(canRead(child,'b',all),false);assert.equal(canRead(child,'a',all),true);assert.equal(canEdit(parent,'b'),false)});
