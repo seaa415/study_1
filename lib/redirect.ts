@@ -1,0 +1,1 @@
+export function safeReturn(value:string|null|undefined){if(!value||!value.startsWith('/')||value.startsWith('//'))return '/';try{const u=new URL(value,'https://scene.invalid');if(u.origin!=='https://scene.invalid'||u.pathname.startsWith('/auth/')||u.pathname==='/login')return '/';return u.pathname+u.search+u.hash}catch{return '/'}}
